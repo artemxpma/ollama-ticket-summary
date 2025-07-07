@@ -100,6 +100,33 @@ class TicketAnalyzer:
             if description and len(description) > 300:
                 description = description[:300] + "..."
             
+            # Extract comments if available
+            comments = []
+            comment_field = fields.get('comment', {})
+            if comment_field and 'comments' in comment_field:
+                for comment in comment_field['comments'][-3:]:  # Last 3 comments
+                    author = comment.get('author', {}).get('displayName', 'Unknown')
+                    body = comment.get('body', '')
+                    if len(body) > 150:
+                        body = body[:150] + "..."
+                    comments.append(f"  {author}: {body}")
+            
+            comments_text = '\n'.join(comments) if comments else 'No comments'
+            
+            # Extract recent history if available
+            history_items = []
+            changelog = ticket.get('changelog', {})
+            if changelog and 'histories' in changelog:
+                for history in changelog['histories'][-2:]:  # Last 2 history entries
+                    author = history.get('author', {}).get('displayName', 'Unknown')
+                    for item in history.get('items', []):
+                        field = item.get('field', '')
+                        from_val = item.get('fromString', '')
+                        to_val = item.get('toString', '')
+                        history_items.append(f"  {author}: {field} changed from '{from_val}' to '{to_val}'")
+            
+            history_text = '\n'.join(history_items) if history_items else 'No recent changes'
+            
             ticket_summary = f"""
 Ticket: {key}
 Title: {summary}
@@ -111,6 +138,10 @@ Reporter: {reporter_name}
 Created: {created}
 Updated: {updated}
 Description: {description or 'No description'}
+Recent Comments:
+{comments_text}
+Recent History:
+{history_text}
 ---
 """
             ticket_summaries.append(ticket_summary)
@@ -134,16 +165,42 @@ Keep the analysis concise and manager-friendly. Focus on actionable insights.
 Ticket Data:
 """,
             "detailed": """
-Please provide a detailed analysis of these Jira tickets including:
+You are a senior analyst reviewing 600 Level 2 tech support Jira tickets. Your goal is to extract operational and team performance insights. Provide specific, data-driven answers. Be concise, but insightful. Avoid generic statements.
 
-1. **Detailed Breakdown** by status, priority, and type
-2. **Timeline Analysis** (creation and update patterns)
-3. **Workload Distribution** (assignments across team members)
-4. **Risk Assessment** (potential blockers or delays)
-5. **Process Insights** (patterns in ticket lifecycle)
-6. **Strategic Recommendations** (long-term improvements)
+Analyze the following:
 
-Provide specific examples and data points where relevant.
+1. 🔁 **Recurring Issues & Technical Trends**
+   - Cluster similar tickets by keywords or symptoms (e.g. "timeout", "duplicate entry", "3DS failure")
+   - Give counts per cluster and example ticket IDs
+   - Identify what systems/modules cause the most trouble
+
+2. 👤 **Most Valuable Personnel**
+   - Who resolves the most tickets?
+   - Who handles the most complex tickets? (longest descriptions, critical priority)
+   - Who closes tickets fastest (median resolution time)?
+   - Who gets stuck most often? (tickets blocked or not updated >7 days)
+
+3. 🧱 **Bottlenecks & Risks**
+   - Where are tickets getting stuck? (statuses, handoffs, specific assignees)
+   - Are there neglected tickets (e.g., open for >14 days)?
+   - Are high-priority tickets resolved faster than low-priority ones?
+
+4. 🗓️ **Time-Based Trends**
+   - Ticket volume by week/month
+   - Resolution time trends: is it improving?
+   - Peaks in ticket creation or slowdowns in resolution — identify and explain
+
+5. 📈 **Process and Workflow Patterns**
+   - Average number of status transitions per ticket
+   - Any patterns in ticket reopenings?
+   - Any assignee-specific patterns? (e.g. "Assignee X always gets API errors")
+
+6. 🚨 **Actionable Recommendations**
+   - Suggest team/process improvements
+   - Propose which recurring issues should be fixed at the root
+   - Identify where automation could reduce ticket load
+
+Be specific. Use bullet points and tables where appropriate. Include counts, percentages, and ticket IDs. This analysis is for a support team manager who wants to improve efficiency, identify top performers, and reduce recurring problems.
 
 Ticket Data:
 """,

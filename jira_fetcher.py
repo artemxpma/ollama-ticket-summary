@@ -111,7 +111,8 @@ class JiraTicketFetcher:
                     'jql': jql,
                     'maxResults': batch_size,
                     'startAt': start_at,
-                    'fields': 'key,summary,description,status,priority,assignee,reporter,created,updated,issuetype,components,labels'
+                    'fields': 'key,summary,description,status,priority,assignee,reporter,created,updated,issuetype,components,labels,comment,changelog',
+                    'expand': 'changelog'
                 }
                 
                 logger.info(f"Making paginated request - batch {len(all_tickets)//batch_size + 1}")
